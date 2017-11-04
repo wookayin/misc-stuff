@@ -1,0 +1,44 @@
+#!/bin/bash
+
+usage() {
+    echo "$(basename $0) [infile] [PAGE] [outfile]"
+    echo "Generates a cropped pdf image, at the page PAGE from infile"
+    exit 1;
+}
+
+# dependency
+# brew install poppler
+
+set -e
+if [ -z "$1" ]; then usage; exit 1; fi
+if [ -z "$2" ]; then usage; exit 1; fi
+if [ -z "$3" ]; then usage; exit 1; fi
+
+SOURCE_PDF="$1";
+if [ ! -f $SOURCE_PDF ]; then
+    echo "Not exists: $SOURCE_PDF"
+    exit 1;
+fi
+
+pdf_split_and_crop() {
+    echo -e "From source : $SOURCE_PDF \n"
+    page=$2
+    outfile=$3
+
+    if [ -z "$page" ]; then
+        echo 'specify page';
+        exit 1;
+    fi
+    if [ -z "$outfile" ]; then
+        echo 'specify outfile';
+        exit 1;
+    fi
+
+    pdfseparate -f $page -l $page $SOURCE_PDF pictures.page${page}.tmp.pdf
+    pdfcrop -margin ${MARGIN:-5} pictures.page${page}.tmp.pdf ${outfile}
+    rm pictures.page${page}.tmp.pdf
+
+    echo -e 'All Set!\n'
+}
+
+pdf_split_and_crop $SOURCE_PDF $2 $3
