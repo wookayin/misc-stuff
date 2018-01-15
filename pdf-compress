@@ -3,14 +3,24 @@
 # requres ghostscript
 # (e.g. brew install ghostscript)
 
+usage() {
+    echo "Usage: "
+    echo "  pdf-compress infile             (inplace convert)"
+    echo "  pdf-compress infile outfile     (convert from infile to outfile)"
+}
+
 pdf_compress() {
     # pdf_compress infile outfile
     gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress -dNOPAUSE -dQUIET -dBATCH \
         -sOutputFile="$2" "$1"
 }
 
+if [[ -z "$1" || "$1" == "--help" ]]; then
+    usage; exit
+fi
+
 if [ ! -f "$1" ]; then
-    echo "Not exists input file: $1"; exit 1;
+    echo "Input file not exists: $1"; exit 1;
 fi
 
 if [ -z "$2" ]; then
@@ -19,8 +29,8 @@ if [ -z "$2" ]; then
     outfile="$1.tmp"
 
     pdf_compress "$infile" "$outfile"
-    mv $infile $infile.bak
-    mv $outfile $infile
+    mv "$infile" "$infile.bak"
+    mv "$outfile" "$infile"
 else
     # infile -> outfile
     pdf_compress $1 $2
