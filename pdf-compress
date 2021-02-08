@@ -11,7 +11,11 @@ usage() {
 
 pdf_compress() {
     # pdf_compress infile outfile
-    gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress -dNOPAUSE -dQUIET -dBATCH \
+    # -dPDFSETTINGS=/screen   -- 72 dpi;
+    # -dPDFSETTINGS=/ebook    -- 150 dpi;
+    # -dPDFSETTINGS=/printer  -- 300 dpi greyscale;
+    # -dPDFSETTINGS=/prepress -- 300 dpi color.
+    gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dColorImageResolution=250 -dNOPAUSE -dQUIET -dBATCH \
         -sOutputFile="$2" "$1"
 }
 
@@ -33,5 +37,5 @@ if [ -z "$2" ]; then
     mv "$outfile" "$infile"
 else
     # infile -> outfile
-    pdf_compress $1 $2
+    pdf_compress "$1" "$2"
 fi
