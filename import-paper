@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+
+# A personal script to import papers (PDF) into personal dropbox folder.
+
+
+from typing import List
+import shlex
+import re
+import os
+import subprocess as sp
+from datetime import datetime
+from urllib.parse import urlparse
+import urllib.request
+from pathlib import Path
+
+import arxiv
+import blessed
+
+term = blessed.Terminal()
+
+
+PDF_BASE_PATH = "~/Dropbox/Library.papers3/articles"
+NOTE_BASE_PATH = "~/Dropbox/Notable/notes"
+
+
+def clean_path(title: str) -> str:
+    title = title.replace('/', '')
+    title = title.replace("'", '')
+    title = title.replace('"', '')
+    title = title.replace('@', ' ')
+    return title
+
+
+ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+
+def log_boxed(msg, len_adjust=0):
+    import unicodedata
+    w = 0
+    for line in msg.split('\n'):
+        l = sum(not unicodedata.combining(ch) for ch in ansi_escape.sub('', line)) + len_adjust
+        w = max(w, l)
+
+    print("┏" + ("━" * w) + "┓\n", end='')
+    for line in msg.split('\n'):
+        l = sum(not unicodedata.combining(ch) for ch in ansi_escape.sub('', line)) + len_adjust
+        if not line:
+            continue
+        print("┃" + line   , end='')
+        print(" " * (w - l + 3) + "┃\n", end='')
+    print("┗" + ("━" * w) + "┛\n", end='')
+
+
+def import_paper(url: str, *, force=False,
+                 write_notable=True,
+                 import_into_papers=True,
+                 ):
+    if not isinstance(url, str):
+        raise TypeError("`url` must be a {}, but given {}".format(str, type(url)))
+    if urlparse(url).scheme not in ('http', 'https'):
+        raise ValueError("Not an url: {}".format(url))
+
+    url = re.sub(pattern=r'^https?://arxiv.org/pdf/([0-9.]+)(v\d+)?(\.pdf)?$',
+                 repl=r'https://arxiv.org/abs/\1', string=url)
+    print(f"Importing {url} ...")
+
+    if 'arxiv.org' in url:
+        arxiv_query = os.path.basename(url).rstrip('.pdf')
+        ret = arxiv.query(arxiv_query, max_results=1)
+        if not ret:
+            raise RuntimeError(f"No result for {arxiv_query}")
+        entry = ret[0]
+        title = re.sub(r'[\s]+', ' ', entry['title'])
+        authors = ', '.join(entry['authors'])
+        publication_year = ret[0]['published_parsed'].tm_year or 'Unknown'
+        pdf_url = ret[0]['pdf_url']
+    else:
+        title = input("Title> ").strip()
+        authors = input("Authors (comma-sep)> ")
+        authors = ', '.join([x.strip() for x in authors.split(',')])
+        publication_year = int(input("Year> ").strip())
+        pdf_url = url
+        assert title
+        assert authors
+
+    msg = ''
+    msg += ("  " + term.bold_green(title) + '\n')
+    msg += ("  " + term.yellow(authors) + '\n')
+    msg += ("  " + term.cyan(url) + '\n')
+    log_boxed(msg)
+
+    # notable
+    md_file = os.path.join(os.path.expanduser(NOTE_BASE_PATH),
+                           clean_path(title) + ".md")
+    #date_iso = datetime.utcnow().isoformat() + 'Z'
+    date_iso = datetime.now().astimezone().isoformat()  # local timezone
+    if write_notable:
+        if not os.path.exists(md_file) or force:
+            with open(md_file, "wt") as fp:
+                print(f"Writing to {md_file} ...")
+                fp.write("""\
+---
+title: '{title}'
+created: '{date}'
+modified: '{date}'
+---
+
+# {title}
+
+{authors}
+{url}
+""".format(title=title, date=date_iso, authors=authors, url=url))
+        else:
+            print(term.yellow(f"Already exists: {md_file}"))
+
+        # Open .md with the default editor (Typora)
+        sp.call("cd {} && open {}".format(
+            shlex.quote(os.path.dirname(md_file)),
+            shlex.quote(md_file)
+        ), shell=True)
+
+    # papers
+    if import_into_papers:
+        print("Importing {} into Library ...".format(url))
+        #cmd = "open -a Papers {}".format(shlex.quote(url))
+        #sp.call(cmd, shell=True)
+
+        # TODO: This won't work if this is not an arxiv paper.
+        first_author_lastname = authors.split(',')[0].split()[-1]
+
+        base_path = Path(PDF_BASE_PATH).expanduser()
+        base_path = base_path / str(publication_year)
+        base_path.mkdir(exist_ok=True)
+
+        pdf_path = base_path / f'{first_author_lastname} {publication_year} - {title}.pdf'
+        if pdf_path.exists():
+            print(term.yellow(f"Skipped (already exists): {pdf_path}"))
+        else:
+            urllib.request.urlretrieve(pdf_url, str(pdf_path))
+            print(f"Downloaded {pdf_url} into:\n'{pdf_path}'")
+
+        # Open the PDF file.
+        sp.call("open {}".format(shlex.quote(str(pdf_path))), shell=True)
+
+
+
+def main():
+    from distutils.util import strtobool as str2bool
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('url', nargs='+')
+    parser.add_argument('--force', '-f', default=False, action='store_true')
+    parser.add_argument('--import-into-papers', '-p', default=True, type=str2bool)
+    parser.add_argument('--no-papers', dest='import_into_papers', action='store_false')
+    parser.add_argument('--write-notable', '-n', default=True, type=str2bool)
+    parser.add_argument('--no-notable', dest='write_notable', action='store_false')
+    args = parser.parse_args()
+
+    for url in args.url:
+        import_paper(url=url, force=args.force,
+                     import_into_papers=args.import_into_papers,
+                     write_notable=args.write_notable)
+
+if __name__ == '__main__':
+    main()
