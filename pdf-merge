@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+# Merge several PDF files into one.
+# Requires ghostscript (gs)
+
+import argparse
+import shutil
+import shlex
+import urllib.request
+import tempfile
+import subprocess as sp
+from typing import List
+
+
+def process(item: str) -> str:
+    """Download file if URL is a remote path."""
+    if item.startswith('http://') or item.startswith('https://'):
+        _, local_path = tempfile.mkstemp(suffix='pdf-merge.tmp.pdf')
+        print(f"Downloading {item} into {local_path} ...")
+        urllib.request.urlretrieve(item, str(local_path))
+        return local_path
+    return item
+
+
+def pdf_merge(args: List[str],
+              output_file: str):
+    """Main entrypoint of the program."""
+    local_files = [process(f) for f in args]
+
+    print(f"Merging into {output_file} ...")
+    sp.check_call(
+        ["gs",
+         "-q", "-dNOPAUSE", "-dBATCH", "-sDEVICE=pdfwrite",
+         "-sOutputFile=" + shlex.quote(output_file),
+         *local_files]
+    )
+
+    # Remove temp files
+    for f in local_files:
+        if f.endswith('pdf-merge.tmp.pdf'):
+            shutil.rmtree(f, ignore_errors=True)
+
+
+def main():
+    """main()"""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('args', nargs='*', type=str)
+    parser.add_argument('--output_file', '-o', required=True)
+    args = parser.parse_args()
+
+    pdf_merge(**vars(args))
+
+
+if __name__ == '__main__':
+    main()
