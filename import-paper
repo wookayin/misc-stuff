@@ -7,6 +7,7 @@ import dataclasses
 import os
 import re
 import shlex
+import shutil
 import subprocess as sp
 import urllib.request
 from datetime import datetime
@@ -163,10 +164,16 @@ def import_paper(url: str, *, force=False,
     # notable
     md_file = os.path.join(os.path.expanduser(NOTE_BASE_PATH),
                            clean_path(entry.title) + ".md")
-    #date_iso = datetime.utcnow().isoformat() + 'Z'
     date_iso = datetime.now().astimezone().isoformat()  # local timezone
     if write_notable:
         if not os.path.exists(md_file) or force:
+            # Create a backup
+            if force and os.path.exists(md_file):
+                backup_path = re.sub(".md$", ".backup.md", str(md_file))
+                shutil.copy2(md_file, backup_path)
+                print(term.yellow(f"Created a backup of note at {backup_path}"))
+
+            # Write a new note file
             with open(md_file, "wt") as fp:
                 print(f"Writing to {md_file} ...")
                 fp.write(NOTE_TEMPLATE.format(
@@ -195,11 +202,18 @@ def import_paper(url: str, *, force=False,
         base_path.mkdir(exist_ok=True)
 
         pdf_path = base_path / f'{first_author_lastname} {entry.publication_year} - {entry.title}.pdf'
-        if pdf_path.exists():
-            print(term.yellow(f"Skipped (already exists): {pdf_path}"))
-        else:
+        if force or not pdf_path.exists():
+            # Create a backup
+            if force and pdf_path.exists():
+                backup_path = re.sub(".pdf$", ".backup.pdf", str(pdf_path))
+                shutil.copy2(pdf_path, backup_path)
+                print(term.yellow(f"[!] Created a backup of PDF at {backup_path}"))
+
+            # Download the PDF file
             urllib.request.urlretrieve(entry.pdf_url, str(pdf_path))
             print(f"Downloaded {entry.pdf_url} into:\n'{pdf_path}'")
+        else:
+            print(term.yellow(f"Skipped (already exists): {pdf_path}"))
 
         # Open the PDF file.
         sp.call("open {}".format(shlex.quote(str(pdf_path))), shell=True)
