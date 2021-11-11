@@ -90,6 +90,8 @@ def handle_arxiv(url: str) -> Optional[PaperEntry]:
     if not ret:
         raise RuntimeError(f"No result for {arxiv_query}")
     entry = next(iter(ret))   # type: ignore
+    assert arxiv_query in entry['pdf_url'], (
+        f"entry = {entry} did not match {arxiv_query}")
 
     return PaperEntry(
         url=url,
