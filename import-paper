@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 from urllib.parse import urlparse
 
+# pip install arxiv blessed openreview-py
 import arxiv
 import blessed
 import openreview
@@ -86,19 +87,19 @@ def handle_arxiv(url: str) -> Optional[PaperEntry]:
                  repl=r'https://arxiv.org/abs/\1', string=url)
 
     arxiv_query = os.path.basename(url).rstrip('.pdf')
-    ret = arxiv.query(arxiv_query, max_results=1)
+    ret = list(arxiv.Search(arxiv_query, max_results=1).results())
     if not ret:
         raise RuntimeError(f"No result for {arxiv_query}")
-    entry = next(iter(ret))   # type: ignore
-    assert arxiv_query in entry['pdf_url'], (
+    entry = ret[0]   # type: ignore
+    assert arxiv_query in entry.pdf_url, (
         f"entry = {entry} did not match {arxiv_query}")
 
     return PaperEntry(
         url=url,
-        title=re.sub(r'[\s]+', ' ', entry['title']),
-        authors=list(entry['authors']),
-        publication_year=entry['published_parsed'].tm_year or 'Unknown',
-        pdf_url=entry['pdf_url'],
+        title=re.sub(r'[\s]+', ' ', entry.title),
+        authors=[a.name for a in entry.authors],
+        publication_year=entry.published and entry.published.year or 'Unknown',  # type: ignore
+        pdf_url=entry.pdf_url,
     )
 
 
