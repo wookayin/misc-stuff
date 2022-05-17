@@ -24,7 +24,7 @@ import openreview
 term = blessed.Terminal()
 
 
-PDF_BASE_PATH = "~/Dropbox/Library.papers3/articles"
+PDF_BASE_PATH = "~/Dropbox/papers/articles"
 NOTE_BASE_PATH = "~/Dropbox/Notable/notes"
 
 NOTE_TEMPLATE = """\
@@ -107,10 +107,10 @@ def handle_openreview(url: str) -> Optional[PaperEntry]:
     if 'openreview.net' not in url:
         return None
 
-    url = re.sub(pattern=r'^https?://openreview.net/pdf\?id=([-0-9a-zA-Z]+)$',
+    url = re.sub(pattern=r'^https?://openreview.net/pdf\?id=(\w+)$',
                  repl=r'https://openreview.net/forum?id=\1', string=url)
 
-    id = re.sub(pattern=r'^https?://openreview.net/(pdf|forum)\?id=([-0-9a-zA-Z]+)$',
+    id = re.sub(pattern=r'^https?://openreview.net/(pdf|forum)\?id=(\w+)$',
                 repl=r'\2', string=url)
 
     client = openreview.Client(baseurl='https://api.openreview.net')
