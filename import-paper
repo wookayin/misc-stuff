@@ -145,7 +145,7 @@ def import_paper(url: str, *, force=False,
                  ):
     if not isinstance(url, str):
         raise TypeError("`url` must be a {}, but given {}".format(str, type(url)))
-    if urlparse(url).scheme not in ('http', 'https'):
+    if urlparse(url).scheme not in ('http', 'https') and not os.path.isfile(url):
         raise ValueError("Not an url: {}".format(url))
 
     # Detect arxiv or openreview PDF files, and canonize URL
@@ -213,7 +213,10 @@ def import_paper(url: str, *, force=False,
                 print(term.yellow(f"[!] Created a backup of PDF at {backup_path}"))
 
             # Download the PDF file
-            urllib.request.urlretrieve(entry.pdf_url, str(pdf_path))
+            if os.path.isfile(entry.pdf_url):
+              shutil.copy2(entry.pdf_url, str(pdf_path))
+            else:
+              urllib.request.urlretrieve(entry.pdf_url, str(pdf_path))
             print(f"Downloaded {entry.pdf_url} into:\n'{pdf_path}'")
         else:
             print(term.yellow(f"Skipped (already exists): {pdf_path}"))
