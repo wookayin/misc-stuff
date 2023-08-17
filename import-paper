@@ -25,9 +25,10 @@ term = blessed.Terminal()
 
 
 PDF_BASE_PATH = "~/Dropbox/papers/articles"
-NOTE_BASE_PATH = "~/Dropbox/Notable/notes"
+NOTE_BASE_PATH = "~/Dropbox/Obsidian/research/paper-reading/inbox"
 
-NOTE_TEMPLATE = """\
+# Deprecated, no longer used
+NOTE_TEMPLATE_NOTABLE = """\
 ---
 title: '{title}'
 created: '{date}'
@@ -39,6 +40,15 @@ tags: []
 
 {authors}
 {url}
+"""
+
+NOTE_TEMPLATE = """
+# {title}
+
+{authors}
+{url}
+
+tags:
 """
 
 def clean_path(title: str) -> str:
@@ -128,7 +138,7 @@ def handle_openreview(url: str) -> Optional[PaperEntry]:
 
 
 def manual_input(url: str) -> PaperEntry:
-    title = input("Title> ").strip()
+    title = input("Title> ").strip().replace("\n", "")
     authors = input("Authors (comma-sep)> ")
     authors = [x.strip() for x in authors.split(',')]
     publication_year = int(input("Year> ").strip())
