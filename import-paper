@@ -56,6 +56,7 @@ def clean_path(title: str) -> str:
     title = title.replace("'", '')
     title = title.replace('"', '')
     title = title.replace('@', ' ')
+    title = title.replace(':', ' - ')
     title = re.sub(r'\s*:\s*', ' - ', title)
     title = re.sub(r'[^\w\-_\. ]', '_', title)
     return title
