@@ -11,7 +11,6 @@ import shutil
 import subprocess as sp
 import urllib.request
 from datetime import datetime
-from distutils.util import strtobool as str2bool
 from pathlib import Path
 from typing import List, Optional, Union
 from urllib.parse import urlparse
@@ -23,6 +22,8 @@ import openreview
 
 term = blessed.Terminal()
 
+def str2bool(s) -> bool:
+    return s.lower() in ('true', '1', 'yes', 'y')
 
 PDF_BASE_PATH = "~/Dropbox/papers/articles"
 NOTE_BASE_PATH = "~/Dropbox/Obsidian/research/paper-reading/inbox"
@@ -225,9 +226,9 @@ def import_paper(url: str, *, force=False,
 
             # Download the PDF file
             if os.path.isfile(entry.pdf_url):
-              shutil.copy2(entry.pdf_url, str(pdf_path))
+                shutil.copy2(entry.pdf_url, str(pdf_path))
             else:
-              urllib.request.urlretrieve(entry.pdf_url, str(pdf_path))
+                urllib.request.urlretrieve(entry.pdf_url, str(pdf_path))
             print(f"Downloaded {entry.pdf_url} into:\n'{pdf_path}'")
         else:
             print(term.yellow(f"Skipped (already exists): {pdf_path}"))
