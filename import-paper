@@ -25,8 +25,9 @@ term = blessed.Terminal()
 def str2bool(s) -> bool:
     return s.lower() in ('true', '1', 'yes', 'y')
 
-PDF_BASE_PATH = "~/Dropbox/papers/articles"
-NOTE_BASE_PATH = "~/Dropbox/Obsidian/research/paper-reading/inbox"
+
+PDF_BASE_PATH = os.path.expanduser("~/Dropbox/papers/articles")
+OBSIDIAN_VAULT = os.path.expanduser("~/Dropbox/Obsidian/research/paper-reading/")
 
 # Deprecated, no longer used
 NOTE_TEMPLATE_NOTABLE = """\
@@ -43,7 +44,7 @@ tags: []
 {url}
 """
 
-NOTE_TEMPLATE = """
+NOTE_TEMPLATE = """\
 # {title}
 
 {authors}
@@ -57,7 +58,6 @@ def clean_path(title: str) -> str:
     title = title.replace("'", '')
     title = title.replace('"', '')
     title = title.replace('@', ' ')
-    title = title.replace(':', ' - ')
     title = re.sub(r'\s*:\s*', ' - ', title)
     title = re.sub(r'[^\w\-_\. ]', '_', title)
     return title
@@ -177,8 +177,9 @@ def import_paper(url: str, *, force=False,
     log_boxed(msg)
 
     # notable
-    md_file = os.path.join(os.path.expanduser(NOTE_BASE_PATH),
-                           clean_path(entry.title) + ".md")
+    note_name = os.path.join("inbox", clean_path(entry.title) + ".md")
+    md_file = os.path.join(OBSIDIAN_VAULT, note_name)
+
     date_iso = datetime.now().astimezone().isoformat()  # local timezone
     if write_notable:
         if not os.path.exists(md_file) or force:
@@ -197,10 +198,11 @@ def import_paper(url: str, *, force=False,
         else:
             print(term.yellow(f"Already exists: {md_file}"))
 
-        # Open .md with the default editor (Typora)
-        sp.call("cd {} && open {}".format(
-            shlex.quote(os.path.dirname(md_file)),
-            shlex.quote(md_file)
+        # Open .md with Obsidian
+        # Install `obs` CLI: https://github.com/Yakitrak/obsidian-cli
+        sp.call("cd {} && obs open {}".format(
+            shlex.quote(OBSIDIAN_VAULT),
+            shlex.quote(note_name)
         ), shell=True)
 
     # papers
@@ -212,13 +214,20 @@ def import_paper(url: str, *, force=False,
         # TODO: This may not work if the author format is not compatible.
         first_author_lastname = entry.authors[0].split()[-1]
 
-        base_path = Path(PDF_BASE_PATH).expanduser()
+        base_path = Path(PDF_BASE_PATH)
         base_path = base_path / str(entry.publication_year)
         base_path.mkdir(exist_ok=True)
 
-        pdf_path = base_path / f'{first_author_lastname} {entry.publication_year} - {entry.title}.pdf'
+        # PDF File name format: Lastname 2023 - Paper Name.pdf
+        pdf_filename: str = f'{first_author_lastname} {entry.publication_year} - {entry.title}.pdf'
+        pdf_path: Path = base_path / pdf_filename
+
+        # Note: un-sanitized PDF file may exist, need to be compatible
+        if not pdf_path.exists():
+            pdf_path = base_path / clean_path(pdf_filename)
+
         if force or not pdf_path.exists():
-            # Create a backup
+            # Create a backup when trying to replace the existing file
             if force and pdf_path.exists():
                 backup_path = re.sub(".pdf$", ".backup.pdf", str(pdf_path))
                 shutil.copy2(pdf_path, backup_path)
