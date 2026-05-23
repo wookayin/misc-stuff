@@ -1,7 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#    "arxiv==4.0.0",
+#    "blessed==1.43.0",
+#    "openreview-py==2.2.0",
+# ]
+# ///
 
-# A personal script to import papers (PDF) into personal dropbox folder.
+"""A personal script to import papers (PDF) into personal dropbox folder."""
 
+from __future__ import annotations
 
 import dataclasses
 import os
@@ -12,10 +21,10 @@ import subprocess as sp
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Union
 from urllib.parse import urlparse
 
-# pip install arxiv blessed openreview-py
+# See ~/.cache/uv/environments-v2
+# pyright: reportMissingImports=false
 import arxiv
 import blessed
 import openreview
@@ -87,11 +96,11 @@ class PaperEntry:
     url: str
     pdf_url: str
     title: str
-    authors: List[str]
-    publication_year: Union[int, str]
+    authors: list[str]
+    publication_year: int | str
 
 
-def handle_arxiv(url: str) -> Optional[PaperEntry]:
+def handle_arxiv(url: str) -> PaperEntry | None:
     if 'arxiv.org' not in url:
         return None
 
@@ -115,7 +124,7 @@ def handle_arxiv(url: str) -> Optional[PaperEntry]:
     )
 
 
-def handle_openreview(url: str) -> Optional[PaperEntry]:
+def handle_openreview(url: str) -> PaperEntry | None:
     if 'openreview.net' not in url:
         return None
 
@@ -253,7 +262,8 @@ def main():
     parser.add_argument('--force', '-f', default=False, action='store_true')
     parser.add_argument('--import-into-papers', '-p', default=True, type=str2bool)
     parser.add_argument('--no-papers', dest='import_into_papers', action='store_false')
-    parser.add_argument('--write-notable', '-n', default=True, type=str2bool)
+    parser.add_argument('--write-notable', '-n', default=False, type=str2bool)
+    parser.add_argument('--notable', dest='write_notable', action='store_true')
     parser.add_argument('--no-notable', dest='write_notable', action='store_false')
     args = parser.parse_args()
 
