@@ -3,6 +3,8 @@
 # requres ghostscript
 # (e.g. brew install ghostscript)
 
+set -e -o pipefail
+
 usage() {
     echo "Usage: "
     echo "  pdf-compress infile             (inplace convert)"
@@ -15,8 +17,9 @@ pdf_compress() {
     # -dPDFSETTINGS=/ebook    -- 150 dpi;
     # -dPDFSETTINGS=/printer  -- 300 dpi greyscale;
     # -dPDFSETTINGS=/prepress -- 300 dpi color.
-    gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dColorImageResolution=250 -dNOPAUSE -dQUIET -dBATCH \
-        -sOutputFile="$2" "$1"
+    gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dColorImageResolution=300 \
+      -dNOPAUSE -dQUIET -dBATCH \
+      -sOutputFile="$2" "$1"
 }
 
 if [[ -z "$1" || "$1" == "--help" ]]; then
